@@ -13,6 +13,9 @@ int main(void)
 	InitWindow(1280, 720, "Physics Engine");
 	SetTargetFPS(60); // VR targets 100FPS
 
+	// initialize world
+	khGravity = (Vector2){ 0, 30 };
+
 	// 'game loop'
 	while (!WindowShouldClose())
 	{
@@ -25,14 +28,22 @@ int main(void)
 		{
 			khBody* body = CreateBody();
 			body->position = position;
-			body->mass = GetRandomFloatValue(1, 5);
+			body->mass = GetRandomFloatValue(1, 10);
+			body->inverseMass = 1 / body->mass;
+			body->type = BT_DYNAMIC;
+			body->damping = 0.5f; // 0.5f
+			body->gravityScale = 5; // anything i want but i think 5 works
+			
+			body->color = ColorFromHSV(GetRandomFloatValue(0, 255), GetRandomFloatValue(0, 255), GetRandomFloatValue(0, 255));
+			
+			ApplyForce(body, (Vector2) { GetRandomFloatValue(-100, 100), GetRandomFloatValue(-100, 100) }, FM_VELOCITY);
 		}
 		
 		// apply force
 		khBody* body = khBodies;
 		while (body)
 		{
-			ApplyForce(body, CreateVector2(0, -50));
+			//ApplyForce(body, CreateVector2(0, -50), FM_FORCE);
 			body = body->next;
 		}
 
@@ -41,8 +52,7 @@ int main(void)
 		body = khBodies; 
 		while (body)
 		{
-			ExplicitEuler(body, dt);
-			ClearForce(body);
+			Step(body, dt);
 			body = body->next;
 		}
 
@@ -61,7 +71,7 @@ int main(void)
 		body = khBodies; 
 		while (body)
 		{
-			DrawCircle((int)body->position.x, (int)body->position.y, body->mass, YELLOW);
+			DrawCircle((int)body->position.x, (int)body->position.y, body->mass, body->color);
 			body = body->next;
 		}
 

@@ -10,7 +10,7 @@ inline float GetRandomFloatValue01()
 
 inline float GetRandomFloatValue(float min, float max)
 {
-	return min + (max - min) / GetRandomFloatValue01();
+	return min + (max - min) * GetRandomFloatValue01(); // dont divide dumbass <3 || made whole screen yeller
 }
 
 inline Vector2 CreateVector2(float x, float y)

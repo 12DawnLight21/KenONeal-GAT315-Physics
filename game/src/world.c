@@ -1,5 +1,6 @@
 #pragma once
 #include "world.h"
+#include "body.h"
 
 #include <stdlib.h>
 #include <assert.h>
@@ -7,6 +8,7 @@
 
 khBody* khBodies = NULL;
 int khBodyCount = 0;
+Vector2 khGravity; //= (Vector2){ 0, 30 }
 
 khBody* CreateBody()
 {
