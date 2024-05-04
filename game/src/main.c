@@ -23,20 +23,26 @@ int main(void)
 		float dt = GetFrameTime(); // NO CLASSES 
 		float fps = (float)GetFPS();
 
+		//Vector2 circleBurst = Vector2Scale(GetVector2FromAngle(GetRandomFloatValue(0, 360) * DEG2RAD), GetRandomFloatValue(1000, 2000));
+		khForceMode circleBurstFM = FM_IMPULSE;
+
 		Vector2 position = GetMousePosition();
 		if (IsMouseButtonDown(0))
 		{
+			float angle = GetRandomFloatValue(0, 360);
 			khBody* body = CreateBody();
 			body->position = position;
 			body->mass = GetRandomFloatValue(1, 10);
 			body->inverseMass = 1 / body->mass;
 			body->type = BT_DYNAMIC;
 			body->damping = 0.5f; // 0.5f
-			body->gravityScale = 5; // anything i want but i think 5 works
+			body->gravityScale = 1; // anything i want but i think 5 works
 			
 			body->color = ColorFromHSV(GetRandomFloatValue(0, 255), GetRandomFloatValue(0, 255), GetRandomFloatValue(0, 255));
 			
-			ApplyForce(body, (Vector2) { GetRandomFloatValue(-100, 100), GetRandomFloatValue(-100, 100) }, FM_VELOCITY);
+			//ApplyForce(body, (Vector2) { GetRandomFloatValue(-100, 100), GetRandomFloatValue(-100, 100) }, FM_VELOCITY);
+			Vector2 directedBurst = Vector2Scale(GetVector2FromAngle(angle + GetRandomFloatValue(-30, 30) * DEG2RAD), GetRandomFloatValue(1000, 2000));
+			ApplyForce(body, directedBurst, circleBurstFM);
 		}
 		
 		// apply force
