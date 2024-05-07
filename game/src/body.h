@@ -32,6 +32,8 @@ typedef struct khBody
 	float damping;
 	Color color;
 
+	Vector2 trail[50]; // trail length
+
 	struct khBody* next;
 	struct khBody* prev;
 } khBody;

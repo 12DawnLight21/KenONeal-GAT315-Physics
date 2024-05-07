@@ -4,9 +4,16 @@
 #include "raymath.h"
 #include "integrator.h"
 #include "world.h"
+#include "force.h"
 
 #include <stdlib.h>
 #include <assert.h>
+
+// Function to draw a fading line segment
+void DrawFadingLine(Vector2 start, Vector2 end, Color color, float fade)
+{
+	DrawLineEx(start, end, 2, Fade(color, fade * 255)); // Multiply fade with 255
+}
 
 int main(void)
 {
@@ -29,29 +36,34 @@ int main(void)
 		Vector2 position = GetMousePosition();
 		if (IsMouseButtonDown(0))
 		{
-			float angle = GetRandomFloatValue(0, 360);
-			khBody* body = CreateBody();
-			body->position = position;
-			body->mass = GetRandomFloatValue(1, 10);
-			body->inverseMass = 1 / body->mass;
-			body->type = BT_DYNAMIC;
-			body->damping = 0.5f; // 0.5f
-			body->gravityScale = 1; // anything i want but i think 5 works
-			
-			body->color = ColorFromHSV(GetRandomFloatValue(0, 255), GetRandomFloatValue(0, 255), GetRandomFloatValue(0, 255));
-			
-			//ApplyForce(body, (Vector2) { GetRandomFloatValue(-100, 100), GetRandomFloatValue(-100, 100) }, FM_VELOCITY);
-			Vector2 directedBurst = Vector2Scale(GetVector2FromAngle(angle + GetRandomFloatValue(-30, 30) * DEG2RAD), GetRandomFloatValue(1000, 2000));
-			ApplyForce(body, directedBurst, circleBurstFM);
+			for (int i = 0; i < 100; i++)
+			{
+				float angle = GetRandomFloatValue(0, 360);
+				khBody* body = CreateBody();
+				body->position = position;
+				body->mass = GetRandomFloatValue(1, 10);
+				body->inverseMass = 1 / body->mass;
+				body->type = BT_DYNAMIC;
+				body->damping = 0.5f; // 0.5f
+				body->gravityScale = 0; // anything i want but i think 5 works
+
+				body->color = ColorFromHSV(GetRandomFloatValue(0, 255), GetRandomFloatValue(0, 255), GetRandomFloatValue(0, 255));
+
+				//ApplyForce(body, (Vector2) { GetRandomFloatValue(-100, 100), GetRandomFloatValue(-100, 100) }, FM_VELOCITY);
+				Vector2 directedBurst = Vector2Scale(GetVector2FromAngle(angle + GetRandomFloatValue(-30, 30) * DEG2RAD), GetRandomFloatValue(1000, 2000));
+				ApplyForce(body, directedBurst, circleBurstFM);
+			}
 		}
 		
 		// apply force
 		khBody* body = khBodies;
-		while (body)
-		{
-			//ApplyForce(body, CreateVector2(0, -50), FM_FORCE);
-			body = body->next;
-		}
+		//while (body)
+		//{
+		//	//ApplyForce(body, CreateVector2(0, -50), FM_FORCE);
+		//	body = body->next;
+		//}
+
+		ApplyGravitation(khBodies, 80);
 
 		// update bodies
 		//khBody* body = khBodies;
@@ -65,6 +77,19 @@ int main(void)
 		// render / draw
 		BeginDrawing();
 		ClearBackground(BLACK);
+
+		// Render trails
+		for (khBody* particle = khBodies; particle; particle = particle->next)
+		{
+			for (int i = 0; i < 50 - 1; i++)
+			{
+				if (!Vector2IsZero(particle->trail[i]) && !Vector2IsZero(particle->trail[i + 1]))
+				{
+					// Draw the fading line with proper fading effect
+					DrawFadingLine(particle->trail[i], particle->trail[i + 1], particle->color, (float)(50 - i) / (float)50);
+				}
+			}
+		}
 
 		//stats
 		DrawText(TextFormat("FPS: %.2f (%.2f ms)", fps, 1000 / fps), 10, 10, 20, LIME);

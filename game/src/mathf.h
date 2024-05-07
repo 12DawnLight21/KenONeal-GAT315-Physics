@@ -27,3 +27,8 @@ inline Vector2 GetVector2FromAngle(float angle)
 
 	return v;
 }
+
+inline bool Vector2IsZero(Vector2 v)
+{
+	return (v.x == 0 && v.y == 0);
+}
