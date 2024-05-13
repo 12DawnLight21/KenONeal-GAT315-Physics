@@ -2,7 +2,7 @@
 #include "integrator.h"
 #include "world.h"
 
-void Step(khBody* body, float timestep)
+void Step(khBody_t* body, float timestep)
 {
 	// for trail behind particles
 	for (int i = 50 - 1; i > 0; i--)
@@ -11,7 +11,6 @@ void Step(khBody* body, float timestep)
 	}
 	body->trail[0] = body->position;
 	
-
 	body->force = Vector2Add(body->force, Vector2Scale(Vector2Scale(khGravity, body->gravityScale), body->mass));
 	body->accleration = Vector2Scale(body->force, body->inverseMass);
 

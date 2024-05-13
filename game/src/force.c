@@ -1,11 +1,11 @@
 #include "force.h"
 #include "body.h"
 
-void ApplyGravitation(khBody* bodies, float strength)
+void ApplyGravitation(khBody_t* bodies, float strength)
 {
-    for (khBody* body1 = bodies; body1; body1 = body1->next) 
+    for (khBody_t* body1 = bodies; body1; body1 = body1->next) 
     {
-        for (khBody* body2 = bodies; body2; body2 = body2->next) 
+        for (khBody_t* body2 = bodies; body2; body2 = body2->next) 
         {
             if (body1 == body2) continue; //<if bodies are the same, continue>
 

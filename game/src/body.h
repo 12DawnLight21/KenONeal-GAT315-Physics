@@ -4,9 +4,9 @@
 
 typedef enum khBodyType // bodyType
 {
-	BT_STATIC,
+	BT_DYNAMIC,
 	BT_KINEMATIC,
-	BT_DYNAMIC
+	BT_STATIC
 } khBodyType;
 
 typedef enum khForceMode // forceMode
@@ -16,7 +16,7 @@ typedef enum khForceMode // forceMode
 	FM_VELOCITY
 } khForceMode;
 
-typedef struct khBody
+typedef struct khBody_t
 {
 	khBodyType type; // type instead of body
 
@@ -34,11 +34,11 @@ typedef struct khBody
 
 	Vector2 trail[50]; // trail length
 
-	struct khBody* next;
-	struct khBody* prev;
-} khBody;
+	struct khBody_t* next;
+	struct khBody_t* prev;
+} khBody_t;
 
-inline void ApplyForce(khBody* body, Vector2 force, khForceMode forcemode)
+inline void ApplyForce(khBody_t* body, Vector2 force, khForceMode forcemode)
 {
 	if (body->type != BT_DYNAMIC) return;
 
@@ -60,9 +60,9 @@ inline void ApplyForce(khBody* body, Vector2 force, khForceMode forcemode)
 
 }
 
-inline void ClearForce(khBody* body)
+inline void ClearForce(khBody_t* body)
 {
 	body->force = Vector2Zero();
 }
 
-void Step(khBody* body, float timestep);
+void Step(khBody_t* body, float timestep);

@@ -1,6 +1,6 @@
 #pragma once
 
 #pragma once
-typedef struct khBody khBody; // forward declearation
+typedef struct khBody_t khBody_t; // forward declearation
 
-void ApplyGravitation(khBody* bodies, float strength);
+void ApplyGravitation(khBody_t* bodies, float strength);
