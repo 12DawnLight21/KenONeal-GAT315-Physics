@@ -16,7 +16,7 @@ typedef enum khForceMode // forceMode
 	FM_VELOCITY
 } khForceMode;
 
-typedef struct khBody_t
+typedef struct khBody
 {
 	khBodyType type; // type instead of body
 
@@ -30,15 +30,16 @@ typedef struct khBody_t
 	float inverseMass; // 1 / mass (static = 0)
 	float gravityScale;
 	float damping;
+
+	float restitution;
+
 	Color color;
 
-	Vector2 trail[50]; // trail length
+	struct khBody* next;
+	struct khBody* prev;
+} khBody;
 
-	struct khBody_t* next;
-	struct khBody_t* prev;
-} khBody_t;
-
-inline void ApplyForce(khBody_t* body, Vector2 force, khForceMode forcemode)
+inline void ApplyForce(khBody* body, Vector2 force, khForceMode forcemode)
 {
 	if (body->type != BT_DYNAMIC) return;
 
@@ -57,12 +58,11 @@ inline void ApplyForce(khBody_t* body, Vector2 force, khForceMode forcemode)
 			body->velocity = force;
 			break;
 	}
-
 }
 
-inline void ClearForce(khBody_t* body)
+inline void ClearForce(khBody* body)
 {
 	body->force = Vector2Zero();
 }
 
-void Step(khBody_t* body, float timestep);
+void Step(khBody* body, float timestep);

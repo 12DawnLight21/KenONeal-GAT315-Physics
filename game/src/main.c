@@ -8,136 +8,179 @@
 #include "editor.h"
 #include "render.h"
 #include "spring.h"
+#include "contact.h"
+#include "collision.h"
 
 #include <stdlib.h>
 #include <assert.h>
 
-// Function to draw a fading line segment
-void DrawFadingLine(Vector2 start, Vector2 end, Color color, float fade)
-{
-	DrawLineEx(start, end, 2, Fade(color, fade * 255)); // Multiply fade with 255
-}
-
 int main(void)
 {
-	khBody_t* selectedBody = NULL; // or highlighted body ig
-	khBody_t* connectBody = NULL;
+	khBody* selectedBody = NULL; // or highlighted body ig
+	khBody* connectBody = NULL;
+	khContact_t* contacts = NULL;
 
-	InitWindow(1280, 1280, "Ken ONeal - Physics Engine");
+	float fixedTimeStep = 1.0f / khEditorData.FixedTimeStamp;
+	float timeAccumulator = 0;
+
+	InitWindow(1980, 1280, "Ken ONeal - Physics Engine");
 	InitEditor();
 	SetTargetFPS(60); // VR targets 100FPS
 
 	// initialize world
-	khGravity = (Vector2){ 0, 30 };
+	khGravity = (Vector2){ 0,-1 };
+
+	Color bodyColor = BLANK;
 
 	// 'game loop'
 	while (!WindowShouldClose())
 	{
 		// update
-		float dt = GetFrameTime(); // NO CLASSES 
+		float dt = GetFrameTime(); 
 		float fps = (float)GetFPS();
+		khGravity = (Vector2){ 0, -khEditorData.GravityValue };
+		bodyColor = khEditorData.BodyColor;
 
 		Vector2 position = GetMousePosition();
 		khScreenZoom -= GetMouseWheelMove() * 0.2f; 
 		khScreenZoom = Clamp(khScreenZoom, 0.1f, 10); 
 		UpdateEditor(position);
 
-		selectedBody = GetBodyIntersect(khBodies, position);
-		if (selectedBody)
+		if (khEditorData.Reset)
 		{
-			Vector2 screen = ConvertWorldToScreen(selectedBody->position);
-			DrawCircleLines(screen.x, screen.y, ConvertWorldToPixel(selectedBody->mass) + 5, YELLOW);
+			DestroyAllBodies();
+			DestroyAllSprings();
+			khEditorData.Reset = false;
 		}
 
-		// create body
-		if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+		if (!khEditorIntersect)
 		{
-			Color ccolor = ColorFromHSV(GetRandomFloatValue(0, 255), GetRandomFloatValue(0, 255), GetRandomFloatValue(0, 255));
-
-			for (int i = 0; i < 1; i++)
+			selectedBody = GetBodyIntersect(khBodies, position);
+			if (selectedBody)
 			{
-				float angle = GetRandomFloatValue(0, 360);
-				khBody_t* body = CreateBody(ConvertScreenToWorld(position), khEditorData.MinMassValue, khEditorData.BodyTypeActive);
-				
-				body->damping = khEditorData.DampingValue; 
-				body->gravityScale = khEditorData.GravityValue;
-				body->color = ccolor;
+				Vector2 screen = ConvertWorldToScreen(selectedBody->position);
+				DrawCircleLines(screen.x, screen.y, ConvertWorldToPixel(selectedBody->mass) + 5, YELLOW);
+			}
 
-				AddBody(body);
+			// create body
+			if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonDown(MOUSE_BUTTON_LEFT) && IsKeyDown(KEY_LEFT_SHIFT))
+			{
+				for (int i = 0; i < 1; i++)
+				{
+					khBody* body = CreateBody(ConvertScreenToWorld(position), khEditorData.MassValue, khEditorData.BodyTypeActive);
+					body->damping = khEditorData.DampingValue; 
+					body->gravityScale = khEditorData.GravityScaleValue;
+					body->restitution = khEditorData.RestitutionValue;
+					body->color = bodyColor;
+
+					AddBody(body);
+				}
 			}
 		}
 
 		// connect springs
 		if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) && selectedBody) connectBody = selectedBody;
 		if (IsMouseButtonDown(MOUSE_BUTTON_RIGHT) && connectBody) DrawLineBodyToPosition(connectBody, position);
-		if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) && connectBody)
+		if (connectBody)
+		{
+			Vector2 world = ConvertScreenToWorld(position);
+			if (connectBody->type == BT_STATIC || connectBody->type == BT_KINEMATIC)
+			{
+				connectBody->position = world;
+			}
+			else
+			{
+				ApplySpringForcePosition(world, connectBody, 0, khEditorData.StiffnessValue, 5);
+			}
+		}
+		if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT) && connectBody) 
 		{
 			if (selectedBody && selectedBody != connectBody)
 			{
-				khSpring_t* spring = CreateSpring(connectBody, selectedBody, Vector2Distance(connectBody->position, selectedBody->position), 20);
+				khSpring_t* spring = CreateSpring(connectBody, selectedBody, Vector2Distance(connectBody->position, selectedBody->position), khEditorData.StiffnessValue);
 				AddSpring(spring);
 			}
 		}
-		
-		// apply force
-		//khBody_t* body = khBodies;
-
-		// apply gravity
-		ApplyGravitation(khBodies, khEditorData.GravitationValue);
-		ApplySpringForce(khSprings);
-
-		// update bodies
-		for (khBody_t* body = khBodies; body; body = body->next)
+		if (IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)) 
 		{
-			Step(body, dt);
-			//body = body->next;
+			selectedBody = NULL; 
+			connectBody = NULL;
+		}
+		
+		timeAccumulator += dt;
 
-			Vector2 screen = ConvertWorldToScreen(body->position);
-			DrawCircle(screen.x, screen.y, ConvertWorldToPixel(body->mass), body->color);
+		while (timeAccumulator >= khEditorData.FixedTimeStamp)
+		{
+			timeAccumulator -= khEditorData.FixedTimeStamp;
+
+			if (!khEditorData.SimulationNotActive)
+			{
+				// apply gravity n force
+				ApplyGravitation(khBodies, khEditorData.GravitationValue);
+				ApplySpringForce(khSprings);
+
+				// update bodies
+				for (khBody* body = khBodies; body; body = body->next)
+				{
+					Step(body, dt);
+
+					// makes the body shrink :D
+					if (khEditorData.MassShrink)
+					{
+						body->mass -= body->mass * 0.02;
+						//if (body->mass <= 0.2) DestroyBody(body); // causes a read-access error in body.c when applying force
+					}
+
+					Vector2 screen = ConvertWorldToScreen(body->position);
+					DrawCircle(screen.x, screen.y, ConvertWorldToPixel(body->mass * 0.5f), body->color);
+				}
+
+				DestroyAllContacts(&contacts);
+				CreateContacts(khBodies, &contacts);
+				SeparateContacts(contacts);
+				ResolveContacts(contacts);
+			}
+
+			else
+			{
+				continue;
+			}
 		}
 
 		// render / draw
 		BeginDrawing();
 		ClearBackground(BLACK);
 
-		// Render trails
-		//for (khBody* particle = khBodies; particle; particle = particle->next)
-		//{
-		//	for (int i = 0; i < 50 - 1; i++)
-		//	{
-		//		if (!Vector2IsZero(particle->trail[i]) && !Vector2IsZero(particle->trail[i + 1]))
-		//		{
-		//			// Draw the fading line with proper fading effect
-		//			DrawFadingLine(particle->trail[i], particle->trail[i + 1], particle->color, (float)(50 - i) / (float)50);
-		//		}
-		//	}
-		//}
-
 		//stats
 		DrawText(TextFormat("FPS: %.2f (%.2f ms)", fps, 1000 / fps), 10, 10, 20, LIME);
-		DrawText(TextFormat("FRAME: %.4f", dt), 10, 30, 20, LIME);
+		DrawText(TextFormat("FRAME: %.4f", khEditorData.FixedTimeStamp), 10, 30, 20, LIME);
 
 		// draw bodies
-		for (khBody_t* body = khBodies; body; body = body->next)
+		for (khBody* body = khBodies; body; body = body->next)
 		{
-			DrawCircle((int)body->position.x, (int)body->position.y, (int)body->mass, body->color);
+			Vector2 screen = ConvertWorldToScreen(body->position);
+			DrawCircle(screen.x, screen.y, ConvertWorldToPixel(body->mass * 0.5f), body->color);
+		}
+
+		// draw contacts
+		for (khContact_t* contact = contacts; contact; contact = contact->next)
+		{
+			Vector2 screen = ConvertWorldToScreen(contact->body1->position);
+			DrawCircle(screen.x, screen.y, ConvertWorldToPixel(contact->body1->mass * 0.5f), RED);
 		}
 
 		// draw springs
 		for (khSpring_t* spring = khSprings; spring; spring = spring->next)
 		{
 			Vector2 screen1 = ConvertWorldToScreen(spring->body1->position);
-			Vector2 screen2 = ConvertWorldToScreen(spring->body1->position);
+			Vector2 screen2 = ConvertWorldToScreen(spring->body2->position);
 			DrawLine((int)screen1.x, (int)screen1.y, (int)screen2.x, (int)screen2.y, YELLOW);
 		}
 
 		DrawEditor(position);
-
 		EndDrawing();
 	}
 
 	CloseWindow();
-	free(khBodies); // have to free (delete) bodies
-
 	return 0;
 }

@@ -1,4 +1,6 @@
 #pragma once
+#include "raylib.h"
+#include <stdlib.h>
 
 typedef struct khSpring
 {
@@ -20,3 +22,4 @@ void DestroySpring(khSpring_t* spring);
 void DestroyAllSprings();
 
 void ApplySpringForce(khSpring_t* springs); // pass it the head
+void ApplySpringForcePosition(Vector2 position, struct khBody* body, float restLength, float k, float damping);

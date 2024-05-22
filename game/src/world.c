@@ -6,16 +6,16 @@
 #include <assert.h>
 #include <string.h>
 
-khBody_t* khBodies = NULL;
+khBody* khBodies = NULL;
 int khBodyCount = 0;
 Vector2 khGravity; //= (Vector2){ 0, 30 }
 
-khBody_t* CreateBody(Vector2 position, float mass, khBodyType bodyType)
+khBody* CreateBody(Vector2 position, float mass, khBodyType bodyType)
 {
-	khBody_t* body = (khBody_t*)malloc(sizeof(khBody_t));
+	khBody* body = (khBody*)malloc(sizeof(khBody));
 	assert(body);
 
-	memset(body, 0, sizeof(khBody_t));
+	memset(body, 0, sizeof(khBody));
     body->position = position;
     body->mass = mass;
     body->inverseMass = (bodyType == BT_DYNAMIC) ? 1 / mass : 0;
@@ -24,7 +24,7 @@ khBody_t* CreateBody(Vector2 position, float mass, khBodyType bodyType)
 	return body;
 }
 
-void AddBody(khBody_t* body)
+void AddBody(khBody* body)
 {
     assert(body);
 
@@ -42,7 +42,7 @@ void AddBody(khBody_t* body)
 	khBodyCount++;
 }
 
-void DestroyBody(khBody_t* body)
+void DestroyBody(khBody* body)
 {
 	assert(body);
 
@@ -68,5 +68,15 @@ void DestroyBody(khBody_t* body)
 
 void DestroyAllBodies()
 {
+    if (!khBodies) return;
 
+    khBody* body = khBodies;
+    while (body)
+    {
+        khBody* next = body->next;
+        free(body);
+        body = next;
+    }
+
+    khBodies = NULL;
 }
